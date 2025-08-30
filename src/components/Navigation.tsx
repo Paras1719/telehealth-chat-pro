@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Heart, 
   Calendar, 
@@ -8,7 +10,9 @@ import {
   Users, 
   Settings,
   Menu,
-  X
+  X,
+  LogOut,
+  User
 } from "lucide-react";
 
 interface NavigationProps {
@@ -18,6 +22,7 @@ interface NavigationProps {
 
 export function Navigation({ userType, onUserTypeChange }: NavigationProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, profile, signOut } = useAuth();
 
   const patientNavItems = [
     { icon: Calendar, label: "Book Appointment", id: "appointments" },
@@ -68,24 +73,47 @@ export function Navigation({ userType, onUserTypeChange }: NavigationProps) {
 
           {/* User Type Toggle & Mobile Menu */}
           <div className="flex items-center space-x-3">
-            <div className="hidden sm:flex items-center bg-secondary rounded-lg p-1">
-              <Button
-                variant={userType === 'patient' ? 'medical' : 'ghost'}
-                size="sm"
-                onClick={() => onUserTypeChange('patient')}
-                className="text-xs px-3"
-              >
-                Patient
-              </Button>
-              <Button
-                variant={userType === 'doctor' ? 'medical' : 'ghost'}
-                size="sm"
-                onClick={() => onUserTypeChange('doctor')}
-                className="text-xs px-3"
-              >
-                Doctor
-              </Button>
-            </div>
+            {user && profile ? (
+              <>
+                <span className="hidden sm:block text-sm text-muted-foreground">
+                  Welcome, {profile.full_name}
+                </span>
+                <div className="hidden sm:flex items-center bg-secondary rounded-lg p-1">
+                  <Button
+                    variant={userType === 'patient' ? 'medical' : 'ghost'}
+                    size="sm"
+                    onClick={() => onUserTypeChange('patient')}
+                    className="text-xs px-3"
+                  >
+                    Patient
+                  </Button>
+                  <Button
+                    variant={userType === 'doctor' ? 'medical' : 'ghost'}
+                    size="sm"
+                    onClick={() => onUserTypeChange('doctor')}
+                    className="text-xs px-3"
+                  >
+                    Doctor
+                  </Button>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={signOut}
+                  className="hidden sm:flex items-center text-xs"
+                >
+                  <LogOut className="w-4 h-4 mr-1" />
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <Link to="/auth">
+                <Button variant="medical" size="sm" className="text-xs">
+                  <User className="w-4 h-4 mr-1" />
+                  Sign In
+                </Button>
+              </Link>
+            )}
             
             <button
               className="md:hidden p-2 rounded-md text-foreground hover:bg-medical-light/50"
@@ -100,28 +128,51 @@ export function Navigation({ userType, onUserTypeChange }: NavigationProps) {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-border bg-white">
             <div className="px-2 pt-2 pb-3 space-y-1">
-              <div className="flex sm:hidden justify-center mb-3">
-                <div className="flex items-center bg-secondary rounded-lg p-1 w-full max-w-xs">
+              {user && profile ? (
+                <>
+                  <div className="text-sm text-muted-foreground px-3 py-2">
+                    Welcome, {profile.full_name}
+                  </div>
+                  <div className="flex sm:hidden justify-center mb-3">
+                    <div className="flex items-center bg-secondary rounded-lg p-1 w-full max-w-xs">
+                      <Button
+                        variant={userType === 'patient' ? 'medical' : 'ghost'}
+                        size="sm"
+                        onClick={() => onUserTypeChange('patient')}
+                        className="text-xs flex-1"
+                      >
+                        Patient
+                      </Button>
+                      <Button
+                        variant={userType === 'doctor' ? 'medical' : 'ghost'}
+                        size="sm"
+                        onClick={() => onUserTypeChange('doctor')}
+                        className="text-xs flex-1"
+                      >
+                        Doctor
+                      </Button>
+                    </div>
+                  </div>
                   <Button
-                    variant={userType === 'patient' ? 'medical' : 'ghost'}
+                    variant="ghost"
                     size="sm"
-                    onClick={() => onUserTypeChange('patient')}
-                    className="text-xs flex-1"
+                    onClick={signOut}
+                    className="w-full text-left justify-start"
                   >
-                    Patient
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
                   </Button>
-                  <Button
-                    variant={userType === 'doctor' ? 'medical' : 'ghost'}
-                    size="sm"
-                    onClick={() => onUserTypeChange('doctor')}
-                    className="text-xs flex-1"
-                  >
-                    Doctor
+                </>
+              ) : (
+                <Link to="/auth" className="block px-3">
+                  <Button variant="medical" size="sm" className="w-full">
+                    <User className="w-4 h-4 mr-2" />
+                    Sign In
                   </Button>
-                </div>
-              </div>
+                </Link>
+              )}
               
-              {currentNavItems.map((item) => {
+              {user && currentNavItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <button
