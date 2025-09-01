@@ -40,6 +40,20 @@ export function Navigation({ userType, onUserTypeChange }: NavigationProps) {
 
   const currentNavItems = userType === 'patient' ? patientNavItems : doctorNavItems;
 
+  const getRouteForNavItem = (itemId: string) => {
+    const routeMap: { [key: string]: string } = {
+      appointments: '/appointments',
+      doctors: '/doctors', 
+      announcements: '/announcements',
+      prescriptions: '/prescriptions',
+      schedule: '/schedule',
+      post: '/post-announcement',
+      upload: '/upload-prescription',
+      patients: '/patients'
+    };
+    return routeMap[itemId] || '/';
+  };
+
   return (
     <nav className="bg-white shadow-card-custom border-b border-border sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -60,13 +74,14 @@ export function Navigation({ userType, onUserTypeChange }: NavigationProps) {
             {currentNavItems.map((item) => {
               const Icon = item.icon;
               return (
-                <button
+                <Link
                   key={item.id}
+                  to={getRouteForNavItem(item.id)}
                   className="flex items-center space-x-2 text-foreground hover:text-medical transition-colors duration-200 px-3 py-2 rounded-md hover:bg-medical-light/50"
                 >
                   <Icon className="w-4 h-4" />
                   <span className="text-sm font-medium">{item.label}</span>
-                </button>
+                </Link>
               );
             })}
           </div>
@@ -175,13 +190,15 @@ export function Navigation({ userType, onUserTypeChange }: NavigationProps) {
               {user && currentNavItems.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <button
+                  <Link
                     key={item.id}
+                    to={getRouteForNavItem(item.id)}
                     className="flex items-center space-x-3 w-full text-left px-3 py-2 rounded-md text-foreground hover:text-medical hover:bg-medical-light/50 transition-colors duration-200"
+                    onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <Icon className="w-5 h-5" />
                     <span className="font-medium">{item.label}</span>
-                  </button>
+                  </Link>
                 );
               })}
             </div>

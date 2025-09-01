@@ -11,12 +11,15 @@ import {
   Phone
 } from "lucide-react";
 import heroImage from "@/assets/hero-medical.jpg";
+import { useNavigate } from "react-router-dom";
 
 interface HeroProps {
   userType: 'patient' | 'doctor';
 }
 
 export function Hero({ userType }: HeroProps) {
+  const navigate = useNavigate();
+
   const handleWhatsAppBooking = () => {
     const message = encodeURIComponent("Hi, I would like to book an appointment. Please help me with available slots.");
     window.open(`https://wa.me/1234567890?text=${message}`, '_blank');
@@ -25,6 +28,27 @@ export function Hero({ userType }: HeroProps) {
   const handleWhatsAppSupport = () => {
     const message = encodeURIComponent("Hi, I need support with the healthcare platform.");
     window.open(`https://wa.me/1234567890?text=${message}`, '_blank');
+  };
+
+  const handleServiceAction = (service: any, index: number) => {
+    const routeMap: { [key: string]: string } = {
+      'Book an Appointment': '/appointments',
+      'Find Specialists': '/doctors',
+      'Health Updates': '/announcements', 
+      'Prescription Access': '/prescriptions',
+      'Manage Schedule': '/schedule',
+      'Post Updates': '/post-announcement',
+      'Upload Prescriptions': '/upload-prescription',
+      'Patient Management': '/patients'
+    };
+
+    const route = routeMap[service.title];
+    if (route) {
+      navigate(route);
+    } else {
+      // Fallback to WhatsApp for booking
+      handleWhatsAppBooking();
+    }
   };
 
   const patientServices = [
@@ -112,7 +136,7 @@ export function Hero({ userType }: HeroProps) {
                 <Button 
                   size="lg" 
                   className="bg-white text-medical hover:bg-white/90 shadow-lg text-lg px-8 py-6"
-                  onClick={handleWhatsAppBooking}
+                  onClick={() => navigate(userType === 'patient' ? '/appointments' : '/schedule')}
                 >
                   <Calendar className="w-5 h-5 mr-2" />
                   {userType === 'patient' ? 'Book Appointment' : 'Manage Schedule'}
@@ -187,7 +211,11 @@ export function Hero({ userType }: HeroProps) {
                     </div>
                     <h3 className="text-xl font-semibold text-foreground mb-3">{service.title}</h3>
                     <p className="text-muted-foreground mb-4">{service.description}</p>
-                    <Button variant="outline" className="w-full border-medical text-medical hover:bg-medical hover:text-white">
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-medical text-medical hover:bg-medical hover:text-white"
+                      onClick={() => handleServiceAction(service, index)}
+                    >
                       {service.action}
                     </Button>
                   </div>
