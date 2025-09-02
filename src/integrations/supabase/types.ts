@@ -115,6 +115,45 @@ export type Database = {
           },
         ]
       }
+      doctor_schedules: {
+        Row: {
+          created_at: string
+          date: string
+          doctor_id: string
+          end_time: string
+          id: string
+          max_appointments: number
+          notes: string | null
+          start_time: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          doctor_id: string
+          end_time: string
+          id?: string
+          max_appointments?: number
+          notes?: string | null
+          start_time: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          doctor_id?: string
+          end_time?: string
+          id?: string
+          max_appointments?: number
+          notes?: string | null
+          start_time?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

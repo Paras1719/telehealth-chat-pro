@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, User, Plus, Edit, MessageSquare } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { AddTimeSlotDialog } from "@/components/AddTimeSlotDialog";
+import { EditTimeSlotDialog } from "@/components/EditTimeSlotDialog";
 
 interface TimeSlot {
   id: string;
@@ -13,62 +16,13 @@ interface TimeSlot {
   start_time: string;
   end_time: string;
   status: 'available' | 'booked' | 'blocked';
+  notes?: string;
+  // Data from joined appointments table
   patient_name?: string;
   patient_phone?: string;
-  notes?: string;
+  appointment_notes?: string;
 }
 
-// Mock schedule data - in a real app, this would come from Supabase
-const mockSchedule: TimeSlot[] = [
-  {
-    id: '1',
-    date: '2024-01-16',
-    start_time: '09:00',
-    end_time: '09:30',
-    status: 'booked',
-    patient_name: 'John Doe',
-    patient_phone: '+1234567890',
-    notes: 'Follow-up appointment for hypertension'
-  },
-  {
-    id: '2',
-    date: '2024-01-16',
-    start_time: '09:30',
-    end_time: '10:00',
-    status: 'available'
-  },
-  {
-    id: '3',
-    date: '2024-01-16',
-    start_time: '10:00',
-    end_time: '10:30',
-    status: 'booked',
-    patient_name: 'Jane Smith',
-    patient_phone: '+1234567891',
-    notes: 'Regular checkup'
-  },
-  {
-    id: '4',
-    date: '2024-01-16',
-    start_time: '11:00',
-    end_time: '11:30',
-    status: 'available'
-  },
-  {
-    id: '5',
-    date: '2024-01-17',
-    start_time: '09:00',
-    end_time: '09:30',
-    status: 'blocked'
-  },
-  {
-    id: '6',
-    date: '2024-01-17',
-    start_time: '14:00',
-    end_time: '14:30',
-    status: 'available'
-  }
-];
 
 const Schedule = () => {
   const { user, profile } = useAuth();
@@ -76,6 +30,8 @@ const Schedule = () => {
   const [loading, setLoading] = useState(true);
   const [userType, setUserType] = useState<'patient' | 'doctor'>('doctor');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingSlot, setEditingSlot] = useState<TimeSlot | null>(null);
 
   useEffect(() => {
     if (profile?.role) {
@@ -83,22 +39,91 @@ const Schedule = () => {
     }
   }, [profile?.role]);
 
-  useEffect(() => {
-    // Simulate loading schedule
-    setTimeout(() => {
-      setSchedule(mockSchedule);
+  const fetchSchedule = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      // Get doctor schedules
+      const { data, error } = await supabase
+        .from('doctor_schedules')
+        .select('*')
+        .eq('doctor_id', user.id)
+        .order('date', { ascending: true })
+        .order('start_time', { ascending: true });
+
+      if (error) throw error;
+
+      // Get appointments for these schedules to determine booking status
+      const { data: appointments, error: appointmentsError } = await supabase
+        .from('appointments')
+        .select(`
+          doctor_id,
+          appointment_date,
+          notes,
+          profiles!appointments_patient_id_fkey(
+            full_name,
+            phone
+          )
+        `)
+        .eq('doctor_id', user.id);
+
+      if (appointmentsError) throw appointmentsError;
+
+      // Transform the data to match our TimeSlot interface
+      const transformedSchedule: TimeSlot[] = data?.map(slot => {
+        const slotDate = new Date(slot.date).toISOString().split('T')[0];
+        const slotStart = slot.start_time;
+        const slotEnd = slot.end_time;
+        
+        // Check if this slot has an appointment
+        const appointment = appointments?.find(apt => {
+          const aptDate = new Date(apt.appointment_date).toISOString().split('T')[0];
+          const aptStart = new Date(apt.appointment_date).toTimeString().slice(0, 5);
+          return aptDate === slotDate && 
+                 aptStart >= slotStart && 
+                 aptStart < slotEnd;
+        });
+
+        return {
+          id: slot.id,
+          date: slot.date,
+          start_time: slot.start_time,
+          end_time: slot.end_time,
+          status: appointment ? 'booked' as const : slot.status as 'available' | 'blocked',
+          notes: slot.notes,
+          patient_name: appointment?.profiles?.full_name,
+          patient_phone: appointment?.profiles?.phone,
+          appointment_notes: appointment?.notes
+        };
+      }) || [];
+
+      setSchedule(transformedSchedule);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load schedule",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
-    }, 1000);
-  }, []);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchSchedule();
+    }
+  }, [user]);
 
   const filteredSchedule = schedule.filter(slot => slot.date === selectedDate);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'available': return 'bg-green-100 text-green-800';
-      case 'booked': return 'bg-blue-100 text-blue-800';
-      case 'blocked': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'available': return 'bg-medical-light text-medical-secondary';
+      case 'booked': return 'bg-accent/20 text-accent-foreground';
+      case 'blocked': return 'bg-destructive/20 text-destructive';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -108,17 +133,14 @@ const Schedule = () => {
   };
 
   const handleAddSlot = () => {
-    toast({
-      title: "Add Time Slot",
-      description: "Feature coming soon - Add new available time slots",
-    });
+    setShowAddDialog(true);
   };
 
   const handleEditSlot = (slotId: string) => {
-    toast({
-      title: "Edit Time Slot",
-      description: "Feature coming soon - Edit time slot details",
-    });
+    const slot = schedule.find(s => s.id === slotId);
+    if (slot) {
+      setEditingSlot(slot);
+    }
   };
 
   if (loading) {
@@ -248,11 +270,11 @@ const Schedule = () => {
                           )}
                         </div>
                         
-                        {slot.notes && (
+                         {(slot.appointment_notes || slot.notes) && (
                           <div>
                             <h4 className="font-medium text-sm text-foreground mb-1">Notes:</h4>
                             <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
-                              {slot.notes}
+                              {slot.appointment_notes || slot.notes}
                             </p>
                           </div>
                         )}
@@ -285,8 +307,8 @@ const Schedule = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-green-600" />
+                <div className="w-10 h-10 bg-medical-light rounded-full flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-medical" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Available Slots</p>
@@ -301,8 +323,8 @@ const Schedule = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-blue-600" />
+                <div className="w-10 h-10 bg-accent/20 rounded-full flex items-center justify-center">
+                  <User className="w-5 h-5 text-accent-foreground" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Booked Appointments</p>
@@ -317,8 +339,8 @@ const Schedule = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-red-600" />
+                <div className="w-10 h-10 bg-destructive/20 rounded-full flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-destructive" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Blocked Slots</p>
@@ -330,6 +352,21 @@ const Schedule = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Dialogs */}
+        <AddTimeSlotDialog
+          open={showAddDialog}
+          onOpenChange={setShowAddDialog}
+          onSuccess={fetchSchedule}
+          selectedDate={selectedDate}
+        />
+        
+        <EditTimeSlotDialog
+          slot={editingSlot}
+          open={!!editingSlot}
+          onOpenChange={(open) => !open && setEditingSlot(null)}
+          onSuccess={fetchSchedule}
+        />
       </div>
     </div>
   );
