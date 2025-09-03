@@ -5,75 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Download, User, Calendar, MessageSquare, AlertTriangle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 
-// Mock prescription data - in a real app, this would come from Supabase
 interface Prescription {
   id: string;
   patient_name: string;
-  doctor_name: string;
-  doctor_specialization?: string;
-  date_prescribed: string;
-  medications: {
-    name: string;
-    dosage: string;
-    frequency: string;
-    duration: string;
-    instructions?: string;
-  }[];
-  diagnosis?: string;
+  patient_phone?: string;
+  diagnosis: string;
+  medications: any; // JSONB from Supabase
   notes?: string;
-  status: 'active' | 'completed' | 'cancelled';
+  created_at: string;
+  doctor?: {
+    full_name: string;
+    specialization?: string;
+  } | null;
 }
-
-const mockPrescriptions: Prescription[] = [
-  {
-    id: '1',
-    patient_name: 'John Doe',
-    doctor_name: 'Dr. Sarah Wilson',
-    doctor_specialization: 'Cardiologist', 
-    date_prescribed: '2024-01-15',
-    diagnosis: 'Hypertension',
-    medications: [
-      {
-        name: 'Lisinopril',
-        dosage: '10mg',
-        frequency: 'Once daily',
-        duration: '30 days',
-        instructions: 'Take with food'
-      },
-      {
-        name: 'Amlodipine',
-        dosage: '5mg',
-        frequency: 'Once daily', 
-        duration: '30 days',
-        instructions: 'Take in the morning'
-      }
-    ],
-    notes: 'Follow up in 2 weeks to check blood pressure',
-    status: 'active'
-  },
-  {
-    id: '2',
-    patient_name: 'Jane Smith',
-    doctor_name: 'Dr. Michael Chen',
-    doctor_specialization: 'General Practitioner',
-    date_prescribed: '2024-01-10',
-    diagnosis: 'Upper Respiratory Infection',
-    medications: [
-      {
-        name: 'Amoxicillin',
-        dosage: '500mg',
-        frequency: 'Three times daily',
-        duration: '7 days',
-        instructions: 'Take with meals'
-      }
-    ],
-    notes: 'Complete the full course even if symptoms improve',
-    status: 'completed'
-  }
-];
 
 const Prescriptions = () => {
   const { user, profile } = useAuth();
@@ -88,12 +36,43 @@ const Prescriptions = () => {
   }, [profile?.role]);
 
   useEffect(() => {
-    // Simulate loading prescriptions
-    setTimeout(() => {
-      setPrescriptions(mockPrescriptions);
+    if (user) {
+      fetchPrescriptions();
+    }
+  }, [user, userType]);
+
+  const fetchPrescriptions = async () => {
+    try {
+      let query = supabase.from('prescriptions').select(`
+        *,
+        doctor:doctor_id(full_name, specialization)
+      `);
+
+      // Filter based on user role
+      if (userType === 'patient') {
+        query = query.or(`patient_id.eq.${user?.id},patient_name.eq.${profile?.full_name}`);
+      } else {
+        query = query.eq('doctor_id', user?.id);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch prescriptions",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setPrescriptions((data || []) as unknown as Prescription[]);
+    } catch (error) {
+      console.error('Error fetching prescriptions:', error);
+    } finally {
       setLoading(false);
-    }, 1000);
-  }, []);
+    }
+  };
 
   const handleDownloadPrescription = (prescriptionId: string) => {
     // In a real app, this would generate and download a PDF
@@ -108,13 +87,10 @@ const Prescriptions = () => {
     window.open(`https://wa.me/1234567890?text=${message}`, '_blank');
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const isRecentPrescription = (dateString: string) => {
+    const prescriptionDate = new Date(dateString);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    return prescriptionDate > thirtyDaysAgo;
   };
 
   if (loading) {
@@ -189,14 +165,14 @@ const Prescriptions = () => {
                       <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
-                          {new Date(prescription.date_prescribed).toLocaleDateString()}
+                          {new Date(prescription.created_at).toLocaleDateString()}
                         </div>
-                        {userType === 'patient' && (
+                        {userType === 'patient' && prescription.doctor && (
                           <div className="flex items-center gap-1">
                             <User className="w-4 h-4" />
-                            {prescription.doctor_name}
-                            {prescription.doctor_specialization && (
-                              <span className="text-xs">- {prescription.doctor_specialization}</span>
+                            Dr. {prescription.doctor.full_name}
+                            {prescription.doctor.specialization && (
+                              <span className="text-xs">- {prescription.doctor.specialization}</span>
                             )}
                           </div>
                         )}
@@ -208,8 +184,8 @@ const Prescriptions = () => {
                         )}
                       </div>
                     </div>
-                    <Badge className={getStatusColor(prescription.status)}>
-                      {prescription.status.toUpperCase()}
+                    <Badge className={isRecentPrescription(prescription.created_at) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                      {isRecentPrescription(prescription.created_at) ? 'ACTIVE' : 'OLDER'}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -261,7 +237,7 @@ const Prescriptions = () => {
                       </div>
                     )}
 
-                    {prescription.status === 'active' && (
+                     {isRecentPrescription(prescription.created_at) && (
                       <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                         <div className="flex items-center gap-2 text-amber-800">
                           <AlertTriangle className="w-4 h-4" />

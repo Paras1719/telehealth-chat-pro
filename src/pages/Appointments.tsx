@@ -19,11 +19,11 @@ interface Appointment {
     full_name: string;
     specialization?: string;
     phone?: string;
-  };
+  } | null;
   patient?: {
     full_name: string;
     phone?: string;
-  };
+  } | null;
 }
 
 const Appointments = () => {
@@ -46,12 +46,22 @@ const Appointments = () => {
 
   const fetchAppointments = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('appointments')
         .select(`
-          *
-        `)
-        .order('appointment_date', { ascending: true });
+          *,
+          doctor:doctor_id(full_name, specialization, phone),
+          patient:patient_id(full_name, phone)
+        `);
+
+      // Filter based on user role
+      if (userType === 'patient') {
+        query = query.eq('patient_id', user?.id);
+      } else if (userType === 'doctor') {
+        query = query.eq('doctor_id', user?.id);
+      }
+
+      const { data, error } = await query.order('appointment_date', { ascending: true });
 
       if (error) {
         toast({
@@ -62,8 +72,7 @@ const Appointments = () => {
         return;
       }
 
-      // For now, set empty array until we have actual data
-      setAppointments([]);
+      setAppointments((data || []) as unknown as Appointment[]);
     } catch (error) {
       console.error('Error fetching appointments:', error);
     } finally {

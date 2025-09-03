@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Upload, Plus, Trash2, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -122,12 +123,43 @@ const UploadPrescription = () => {
     setLoading(true);
 
     try {
-      // In a real app, this would save to Supabase or generate a PDF
-      // For now, we'll just show a success message
+      if (!user) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to create prescriptions.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Filter valid medications
+      const validMedications = formData.medications.filter(med => 
+        med.name.trim() && med.dosage.trim() && med.frequency.trim() && med.duration.trim()
+      );
+
+      const { error } = await supabase
+        .from('prescriptions')
+        .insert({
+          doctor_id: user.id,
+          patient_name: formData.patient_name.trim(),
+          patient_phone: formData.patient_phone.trim() || null,
+          diagnosis: formData.diagnosis.trim(),
+          medications: validMedications as any,
+          notes: formData.notes.trim() || null
+        });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to create prescription. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
       
       toast({
         title: "Success!",
-        description: "Prescription uploaded successfully!",
+        description: "Prescription created successfully!",
       });
 
       // Reset form

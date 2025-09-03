@@ -6,10 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { User, Phone, MessageSquare, Calendar, FileText, Search, Mail } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-
-// Mock patient data - in a real app, this would come from Supabase
 interface Patient {
   id: string;
   full_name: string;
@@ -90,13 +89,95 @@ const Patients = () => {
   }, [profile?.role, navigate]);
 
   useEffect(() => {
-    // Simulate loading patients
-    setTimeout(() => {
-      setPatients(mockPatients);
-      setFilteredPatients(mockPatients);
+    if (user && profile?.role === 'doctor') {
+      fetchPatients();
+    } else {
       setLoading(false);
-    }, 1000);
-  }, []);
+    }
+  }, [user, profile]);
+
+  const fetchPatients = async () => {
+    try {
+      // Get patients who have appointments with this doctor
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+          patient:patient_id(
+            user_id,
+            full_name,
+            phone,
+            date_of_birth,
+            gender,
+            emergency_contact
+          )
+        `)
+        .eq('doctor_id', user?.id)
+        .not('patient_id', 'is', null);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch patients",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Process and deduplicate patients
+      const uniquePatients = new Map();
+      
+      data?.forEach((appointment: any) => {
+        if (appointment.patient && appointment.patient.user_id) {
+          const patientId = appointment.patient.user_id;
+          if (!uniquePatients.has(patientId)) {
+            uniquePatients.set(patientId, {
+              id: patientId,
+              full_name: appointment.patient.full_name,
+              phone: appointment.patient.phone,
+              date_of_birth: appointment.patient.date_of_birth,
+              gender: appointment.patient.gender,
+              emergency_contact: appointment.patient.emergency_contact,
+              upcoming_appointments: 0,
+              total_appointments: 0,
+              last_appointment: null
+            });
+          }
+        }
+      });
+
+      // Get appointment counts for each patient
+      for (const [patientId, patient] of uniquePatients) {
+        const { data: appointmentStats } = await supabase
+          .from('appointments')
+          .select('appointment_date, status')
+          .eq('doctor_id', user?.id)
+          .eq('patient_id', patientId);
+
+        if (appointmentStats) {
+          const now = new Date();
+          const upcomingCount = appointmentStats.filter(apt => 
+            new Date(apt.appointment_date) > now && apt.status === 'scheduled'
+          ).length;
+          
+          const lastAppointment = appointmentStats
+            .filter(apt => new Date(apt.appointment_date) < now)
+            .sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime())[0];
+
+          patient.upcoming_appointments = upcomingCount;
+          patient.total_appointments = appointmentStats.length;
+          patient.last_appointment = lastAppointment?.appointment_date || null;
+        }
+      }
+
+      const patientsArray = Array.from(uniquePatients.values());
+      setPatients(patientsArray);
+      setFilteredPatients(patientsArray);
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (searchTerm) {
