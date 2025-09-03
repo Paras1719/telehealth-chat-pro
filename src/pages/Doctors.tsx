@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { User, Phone, MessageSquare, MapPin, Star, Search, Calendar } from "lucide-react";
+import { User, Phone, MessageSquare, Star, Search, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { BookAppointmentDialog } from "@/components/BookAppointmentDialog";
 
 interface Doctor {
   id: string;
@@ -79,8 +80,8 @@ const Doctors = () => {
     }
   };
 
-  const handleBookAppointment = (doctor: Doctor) => {
-    const message = encodeURIComponent(`Hi, I would like to book an appointment with Dr. ${doctor.full_name}${doctor.specialization ? ` (${doctor.specialization})` : ''}. Please help me with available slots.`);
+  const handleWhatsAppSupport = (doctor: Doctor) => {
+    const message = encodeURIComponent(`Hi, I need help regarding Dr. ${doctor.full_name}${doctor.specialization ? ` (${doctor.specialization})` : ''}. Please assist me.`);
     window.open(`https://wa.me/1234567890?text=${message}`, '_blank');
   };
 
@@ -204,13 +205,15 @@ const Doctors = () => {
                     )}
 
                     <div className="flex gap-2 pt-4">
-                      <Button 
-                        className="flex-1 bg-medical hover:bg-medical-secondary"
-                        onClick={() => handleBookAppointment(doctor)}
-                      >
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Book Appointment
-                      </Button>
+                      <BookAppointmentDialog 
+                        doctor={doctor}
+                        trigger={
+                          <Button className="flex-1 bg-medical hover:bg-medical-secondary">
+                            <Calendar className="w-4 h-4 mr-2" />
+                            Book Appointment
+                          </Button>
+                        }
+                      />
                       {doctor.phone && (
                         <Button 
                           variant="outline" 
@@ -225,10 +228,10 @@ const Doctors = () => {
                     <Button 
                       variant="outline" 
                       className="w-full"
-                      onClick={() => handleBookAppointment(doctor)}
+                      onClick={() => handleWhatsAppSupport(doctor)}
                     >
                       <MessageSquare className="w-4 h-4 mr-2" />
-                      WhatsApp Booking
+                      WhatsApp Support
                     </Button>
                   </div>
                 </CardContent>

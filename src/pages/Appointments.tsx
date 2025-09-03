@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, User, Phone, MessageSquare } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Calendar, MessageSquare, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { AppointmentCard } from "@/components/AppointmentCard";
+import { useNavigate } from "react-router-dom";
 
 interface Appointment {
   id: string;
@@ -28,6 +30,7 @@ interface Appointment {
 
 const Appointments = () => {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [userType, setUserType] = useState<'patient' | 'doctor'>('patient');
@@ -80,18 +83,48 @@ const Appointments = () => {
     }
   };
 
-  const handleWhatsAppBooking = () => {
-    const message = encodeURIComponent("Hi, I would like to book an appointment. Please help me with available slots.");
-    window.open(`https://wa.me/1234567890?text=${message}`, '_blank');
+  const handleBookNewAppointment = () => {
+    navigate('/doctors');
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'no_show': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const handleContactPerson = (phone: string, name: string) => {
+    const message = encodeURIComponent(`Hi ${name}, this is regarding our appointment. Please let me know if you have any questions.`);
+    window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${message}`, '_blank');
+  };
+
+  const handleRescheduleAppointment = (appointmentId: string) => {
+    // TODO: Implement reschedule functionality
+    toast({
+      title: "Feature Coming Soon",
+      description: "Reschedule functionality will be available soon. Please contact support for now.",
+    });
+  };
+
+  const handleCancelAppointment = async (appointmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: 'cancelled' })
+        .eq('id', appointmentId);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to cancel appointment",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Appointment cancelled successfully",
+      });
+
+      // Refresh appointments
+      fetchAppointments();
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
     }
   };
 
@@ -125,9 +158,9 @@ const Appointments = () => {
           </div>
           
           {userType === 'patient' && (
-            <Button onClick={handleWhatsAppBooking} className="bg-medical hover:bg-medical-secondary">
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Book New Appointment
+            <Button onClick={handleBookNewAppointment} className="bg-medical hover:bg-medical-secondary">
+              <Search className="w-4 h-4 mr-2" />
+              Find Doctors
             </Button>
           )}
         </div>
@@ -145,108 +178,24 @@ const Appointments = () => {
                   : "No patient appointments found."
                 }
               </p>
-              {userType === 'patient' && (
-                <Button onClick={handleWhatsAppBooking} className="bg-medical hover:bg-medical-secondary">
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  Book Your First Appointment
+               {userType === 'patient' && (
+                <Button onClick={handleBookNewAppointment} className="bg-medical hover:bg-medical-secondary">
+                  <Search className="w-4 h-4 mr-2" />
+                  Find Doctors
                 </Button>
-              )}
+               )}
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-6">
             {appointments.map((appointment) => (
-              <Card key={appointment.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-medical" />
-                        {new Date(appointment.appointment_date).toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </CardTitle>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          {new Date(appointment.appointment_date).toLocaleTimeString('en-US', {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </div>
-                        <span>Duration: {appointment.duration_minutes} minutes</span>
-                      </div>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
-                      {appointment.status.replace('_', ' ').toUpperCase()}
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {userType === 'patient' && appointment.doctor && (
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-medical" />
-                        <div>
-                          <span className="font-medium">Dr. {appointment.doctor.full_name}</span>
-                          {appointment.doctor.specialization && (
-                            <span className="text-muted-foreground ml-2">
-                              - {appointment.doctor.specialization}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {userType === 'doctor' && appointment.patient && (
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-medical" />
-                        <span className="font-medium">{appointment.patient.full_name}</span>
-                      </div>
-                    )}
-
-                    {appointment.notes && (
-                      <div>
-                        <h4 className="font-medium text-sm text-foreground mb-1">Notes:</h4>
-                        <p className="text-sm text-muted-foreground">{appointment.notes}</p>
-                      </div>
-                    )}
-
-                    {appointment.patient_notes && userType === 'doctor' && (
-                      <div>
-                        <h4 className="font-medium text-sm text-foreground mb-1">Patient Notes:</h4>
-                        <p className="text-sm text-muted-foreground">{appointment.patient_notes}</p>
-                      </div>
-                    )}
-
-                    {appointment.doctor_notes && userType === 'patient' && (
-                      <div>
-                        <h4 className="font-medium text-sm text-foreground mb-1">Doctor Notes:</h4>
-                        <p className="text-sm text-muted-foreground">{appointment.doctor_notes}</p>
-                      </div>
-                    )}
-
-                    <div className="flex gap-2 pt-4">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => window.open(`https://wa.me/1234567890?text=${encodeURIComponent(`Regarding appointment on ${new Date(appointment.appointment_date).toLocaleDateString()}`)}`, '_blank')}
-                      >
-                        <MessageSquare className="w-4 h-4 mr-1" />
-                        WhatsApp
-                      </Button>
-                      {appointment.status === 'scheduled' && (
-                        <Button variant="outline" size="sm">
-                          Reschedule
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <AppointmentCard
+                key={appointment.id}
+                appointment={appointment}
+                onReschedule={handleRescheduleAppointment}
+                onCancel={handleCancelAppointment}
+                onContact={handleContactPerson}
+              />
             ))}
           </div>
         )}
