@@ -26,8 +26,11 @@ export default function Auth() {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
-    await signIn(email, password);
-    setIsLoading(false);
+    try {
+      await signIn(email, password);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -40,8 +43,11 @@ export default function Auth() {
     const fullName = formData.get('fullName') as string;
     const role = formData.get('role') as 'patient' | 'doctor';
 
-    await signUp(email, password, fullName, role);
-    setIsLoading(false);
+    try {
+      await signUp(email, password, fullName, role);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (loading) {
