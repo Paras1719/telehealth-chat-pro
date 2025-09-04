@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Heart, UserPlus, LogIn } from 'lucide-react';
 export default function Auth() {
   const { signIn, signUp, user, loading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   // Redirect if already authenticated
   if (user && !loading) {
@@ -27,7 +28,11 @@ export default function Auth() {
     const password = formData.get('password') as string;
 
     try {
-      await signIn(email, password);
+      const { error } = await signIn(email, password);
+      if (!error) {
+        // Redirect to profile after successful signin
+        navigate('/profile');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -44,7 +49,11 @@ export default function Auth() {
     const role = formData.get('role') as 'patient' | 'doctor';
 
     try {
-      await signUp(email, password, fullName, role);
+      const { error } = await signUp(email, password, fullName, role);
+      if (!error) {
+        // Don't redirect immediately after signup - user needs to verify email
+        // The success message in useAuth will guide them
+      }
     } finally {
       setIsLoading(false);
     }

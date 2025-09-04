@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigation } from "@/components/Navigation";
 import { Hero } from "@/components/Hero";
+import { Navigate } from "react-router-dom";
 
 const Index = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [userType, setUserType] = useState<'patient' | 'doctor'>('patient');
 
   // Update userType based on profile role when user logs in
@@ -13,6 +14,11 @@ const Index = () => {
       setUserType(profile.role);
     }
   }, [profile?.role]);
+
+  // If user is authenticated but we're still loading profile, show loading
+  if (user && !profile && !loading) {
+    return <Navigate to="/profile" replace />;
+  }
 
   const handleUserTypeChange = (type: 'patient' | 'doctor') => {
     setUserType(type);

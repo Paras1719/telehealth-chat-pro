@@ -25,6 +25,7 @@ export function Navigation({ userType, onUserTypeChange }: NavigationProps) {
   const { user, profile, signOut } = useAuth();
 
   const patientNavItems = [
+    { icon: User, label: "My Profile", id: "profile" },
     { icon: Calendar, label: "Book Appointment", id: "appointments" },
     { icon: Users, label: "Find Doctors", id: "doctors" },
     { icon: MessageSquare, label: "Announcements", id: "announcements" },
@@ -32,6 +33,7 @@ export function Navigation({ userType, onUserTypeChange }: NavigationProps) {
   ];
 
   const doctorNavItems = [
+    { icon: User, label: "My Profile", id: "profile" },
     { icon: Calendar, label: "My Schedule", id: "schedule" },
     { icon: MessageSquare, label: "Post Announcement", id: "post" },
     { icon: FileText, label: "Upload Prescription", id: "upload" },
@@ -42,6 +44,7 @@ export function Navigation({ userType, onUserTypeChange }: NavigationProps) {
 
   const getRouteForNavItem = (itemId: string) => {
     const routeMap: { [key: string]: string } = {
+      profile: '/profile',
       appointments: '/appointments',
       doctors: '/doctors', 
       announcements: '/announcements',

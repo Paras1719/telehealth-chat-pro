@@ -16,6 +16,7 @@ import Schedule from "./pages/Schedule";
 import Patients from "./pages/Patients";
 import PostAnnouncement from "./pages/PostAnnouncement";
 import UploadPrescription from "./pages/UploadPrescription";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/patients" element={<ProtectedRoute><Patients /></ProtectedRoute>} />
             <Route path="/post-announcement" element={<ProtectedRoute><PostAnnouncement /></ProtectedRoute>} />
             <Route path="/upload-prescription" element={<ProtectedRoute><UploadPrescription /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

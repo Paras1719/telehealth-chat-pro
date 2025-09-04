@@ -8,10 +8,12 @@ import {
   Heart,
   Shield,
   Clock,
-  Phone
+  Phone,
+  UserCheck
 } from "lucide-react";
 import heroImage from "@/assets/hero-medical.jpg";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 interface HeroProps {
   userType: 'patient' | 'doctor';
@@ -19,6 +21,7 @@ interface HeroProps {
 
 export function Hero({ userType }: HeroProps) {
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
 
   const handleWhatsAppBooking = () => {
     const message = encodeURIComponent("Hi, I would like to book an appointment. Please help me with available slots.");
@@ -120,36 +123,82 @@ export function Hero({ userType }: HeroProps) {
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="text-center lg:text-left">
-              <h1 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight">
-                Healthcare for Good
-                <span className="block text-medical-accent">Today. Tomorrow. Always</span>
-              </h1>
-              <p className="text-xl lg:text-2xl mb-8 text-white/90">
-                {userType === 'patient' 
-                  ? "Access quality healthcare services, book appointments, and stay connected with your doctors."
-                  : "Manage your practice efficiently, connect with patients, and provide exceptional healthcare services."
-                }
-              </p>
+          <div className="text-center lg:text-left">
+            {user && profile ? (
+              <div className="mb-6">
+                <div className="flex items-center justify-center lg:justify-start mb-4">
+                  <UserCheck className="w-8 h-8 text-medical-accent mr-3" />
+                  <span className="text-medical-accent font-semibold text-lg">Welcome back!</span>
+                </div>
+                <h1 className="text-3xl lg:text-5xl font-bold mb-4 leading-tight">
+                  Hello, {profile.full_name}
+                  <span className="block text-medical-accent text-2xl lg:text-3xl mt-2">
+                    {profile.role === 'doctor' ? 'Ready to help patients today?' : 'Your health journey continues'}
+                  </span>
+                </h1>
+                <p className="text-lg lg:text-xl mb-8 text-white/90">
+                  {profile.role === 'doctor' 
+                    ? "Manage your schedule, connect with patients, and provide exceptional care."
+                    : "Access your appointments, prescriptions, and stay connected with your healthcare team."
+                  }
+                </p>
+              </div>
+            ) : (
+              <>
+                <h1 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight">
+                  Healthcare for Good
+                  <span className="block text-medical-accent">Today. Tomorrow. Always</span>
+                </h1>
+                <p className="text-xl lg:text-2xl mb-8 text-white/90">
+                  {userType === 'patient' 
+                    ? "Access quality healthcare services, book appointments, and stay connected with your doctors."
+                    : "Manage your practice efficiently, connect with patients, and provide exceptional healthcare services."
+                  }
+                </p>
+              </>
+            )}
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Button 
-                  size="lg" 
-                  className="bg-white text-medical hover:bg-white/90 shadow-lg text-lg px-8 py-6"
-                  onClick={() => navigate(userType === 'patient' ? '/appointments' : '/schedule')}
-                >
-                  <Calendar className="w-5 h-5 mr-2" />
-                  {userType === 'patient' ? 'Book Appointment' : 'Manage Schedule'}
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  className="border-white text-white hover:bg-white hover:text-medical text-lg px-8 py-6"
-                  onClick={handleWhatsAppSupport}
-                >
-                  <Phone className="w-5 h-5 mr-2" />
-                  WhatsApp Support
-                </Button>
+                {user && profile ? (
+                  <>
+                    <Button 
+                      size="lg" 
+                      className="bg-white text-medical hover:bg-white/90 shadow-lg text-lg px-8 py-6"
+                      onClick={() => navigate('/profile')}
+                    >
+                      <UserCheck className="w-5 h-5 mr-2" />
+                      Complete Profile
+                    </Button>
+                    <Button 
+                      size="lg" 
+                      className="bg-medical-accent text-white hover:bg-medical-accent/90 shadow-lg text-lg px-8 py-6"
+                      onClick={() => navigate(userType === 'patient' ? '/appointments' : '/schedule')}
+                    >
+                      <Calendar className="w-5 h-5 mr-2" />
+                      {userType === 'patient' ? 'My Appointments' : 'My Schedule'}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button 
+                      size="lg" 
+                      className="bg-white text-medical hover:bg-white/90 shadow-lg text-lg px-8 py-6"
+                      onClick={() => navigate('/auth')}
+                    >
+                      <UserCheck className="w-5 h-5 mr-2" />
+                      Get Started
+                    </Button>
+                    <Button 
+                      size="lg" 
+                      variant="outline"
+                      className="border-white text-white hover:bg-white hover:text-medical text-lg px-8 py-6"
+                      onClick={handleWhatsAppSupport}
+                    >
+                      <Phone className="w-5 h-5 mr-2" />
+                      WhatsApp Support
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
 
