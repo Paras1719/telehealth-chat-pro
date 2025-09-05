@@ -162,7 +162,7 @@ export type Database = {
           id: string
           medications: Json
           notes: string | null
-          patient_id: string | null
+          patient_id: string
           patient_name: string
           patient_phone: string | null
           updated_at: string
@@ -174,7 +174,7 @@ export type Database = {
           id?: string
           medications: Json
           notes?: string | null
-          patient_id?: string | null
+          patient_id: string
           patient_name: string
           patient_phone?: string | null
           updated_at?: string
@@ -186,7 +186,7 @@ export type Database = {
           id?: string
           medications?: Json
           notes?: string | null
-          patient_id?: string | null
+          patient_id?: string
           patient_name?: string
           patient_phone?: string | null
           updated_at?: string

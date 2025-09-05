@@ -48,9 +48,9 @@ const Prescriptions = () => {
         doctor:doctor_id(full_name, specialization)
       `);
 
-      // Filter based on user role
+      // Filter based on user role - SECURE: Only use verified patient_id
       if (userType === 'patient') {
-        query = query.or(`patient_id.eq.${user?.id},patient_name.eq.${profile?.full_name}`);
+        query = query.eq('patient_id', user?.id);
       } else {
         query = query.eq('doctor_id', user?.id);
       }

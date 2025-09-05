@@ -137,10 +137,37 @@ const UploadPrescription = () => {
         med.name.trim() && med.dosage.trim() && med.frequency.trim() && med.duration.trim()
       );
 
+      // First, find the patient by name to get their patient_id
+      const { data: patientData, error: patientError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .eq('full_name', formData.patient_name.trim())
+        .eq('role', 'patient')
+        .maybeSingle();
+
+      if (patientError) {
+        toast({
+          title: "Error",
+          description: "Failed to find patient. Please verify the patient name.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!patientData) {
+        toast({
+          title: "Patient Not Found",
+          description: "No registered patient found with this name. Please ensure the patient is registered in the system.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('prescriptions')
         .insert({
           doctor_id: user.id,
+          patient_id: patientData.user_id, // SECURE: Always use verified patient_id
           patient_name: formData.patient_name.trim(),
           patient_phone: formData.patient_phone.trim() || null,
           diagnosis: formData.diagnosis.trim(),
