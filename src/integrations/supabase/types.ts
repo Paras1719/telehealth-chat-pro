@@ -255,7 +255,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
     }
     Enums: {
       announcement_category: "health_tip" | "news" | "emergency" | "general"
