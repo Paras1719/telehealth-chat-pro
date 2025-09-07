@@ -67,8 +67,8 @@ export function Navigation({ userType, onUserTypeChange }: NavigationProps) {
               <Heart className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">HealthCare Pro</h1>
-              <p className="text-xs text-muted-foreground">Professional Healthcare Platform</p>
+              <h1 className="text-xl font-bold text-foreground">Health_P</h1>
+              <p className="text-xs text-muted-foreground">Smart Healthcare Platform</p>
             </div>
           </div>
 
