@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { toast } from '@/hooks/use-toast';
 
 export default function Profile() {
   const { profile, updateProfile, user } = useAuth();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -64,6 +66,11 @@ export default function Profile() {
       }
 
       await updateProfile(updates);
+      toast({
+        title: "Profile updated successfully",
+        description: "Your profile has been updated.",
+      });
+      navigate('/');
     } catch (error) {
       console.error('Error updating profile:', error);
     } finally {

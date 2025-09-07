@@ -189,6 +189,27 @@ const UploadPrescription = () => {
         description: "Prescription created successfully!",
       });
 
+      // Send WhatsApp notification to patient
+      if (formData.patient_phone) {
+        const medicationsList = formData.medications
+          .filter(med => med.name.trim())
+          .map(med => `• ${med.name} - ${med.dosage} ${med.frequency} for ${med.duration}`)
+          .join('\n');
+        
+        const whatsappMessage = encodeURIComponent(
+          `🏥 Health_P - New Prescription\n\n` +
+          `Dear ${formData.patient_name},\n\n` +
+          `Dr. ${profile?.full_name} has prescribed:\n\n` +
+          `📋 Diagnosis: ${formData.diagnosis}\n\n` +
+          `💊 Medications:\n${medicationsList}\n\n` +
+          `${formData.notes ? `📝 Notes: ${formData.notes}\n\n` : ''}` +
+          `Please follow the instructions carefully. For any queries, contact your doctor.`
+        );
+        
+        // Open WhatsApp with the prescription message
+        window.open(`https://wa.me/${formData.patient_phone.replace(/\D/g, '')}?text=${whatsappMessage}`, '_blank');
+      }
+
       // Reset form
       setFormData({
         patient_name: '',

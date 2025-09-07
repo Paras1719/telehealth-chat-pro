@@ -81,8 +81,10 @@ const Doctors = () => {
   };
 
   const handleWhatsAppSupport = (doctor: Doctor) => {
-    const message = encodeURIComponent(`Hi, I need help regarding Dr. ${doctor.full_name}${doctor.specialization ? ` (${doctor.specialization})` : ''}. Please assist me.`);
-    window.open(`https://wa.me/1234567890?text=${message}`, '_blank');
+    const doctorPhone = doctor.phone?.replace(/\D/g, '');
+    const message = encodeURIComponent(`Hi Dr. ${doctor.full_name}, I would like to consult with you. Please let me know your availability.`);
+    const phoneNumber = doctorPhone || '1234567890';
+    window.location.href = `https://wa.me/${phoneNumber}?text=${message}`;
   };
 
   const handleCallDoctor = (phone?: string) => {

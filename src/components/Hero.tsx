@@ -25,12 +25,12 @@ export function Hero({ userType }: HeroProps) {
 
   const handleWhatsAppBooking = () => {
     const message = encodeURIComponent("Hi, I would like to book an appointment. Please help me with available slots.");
-    window.open(`https://wa.me/1234567890?text=${message}`, '_blank');
+    window.location.href = `https://wa.me/1234567890?text=${message}`;
   };
 
   const handleWhatsAppSupport = () => {
-    const message = encodeURIComponent("Hi, I need support with the healthcare platform.");
-    window.open(`https://wa.me/1234567890?text=${message}`, '_blank');
+    const message = encodeURIComponent("Hi, I need support with Health_P healthcare platform.");
+    window.location.href = `https://wa.me/1234567890?text=${message}`;
   };
 
   const handleServiceAction = (service: any, index: number) => {

@@ -83,8 +83,8 @@ const Prescriptions = () => {
   };
 
   const handleWhatsAppSupport = () => {
-    const message = encodeURIComponent("Hi, I need help with my prescription. Please assist me.");
-    window.open(`https://wa.me/1234567890?text=${message}`, '_blank');
+    const message = encodeURIComponent("Hi, I need help with my prescription from Health_P. Please assist me.");
+    window.location.href = `https://wa.me/1234567890?text=${message}`;
   };
 
   const isRecentPrescription = (dateString: string) => {
